@@ -1,0 +1,139 @@
+﻿@using PMS_Frontend.Models.ViewModels.ProjectVM
+@model DtoProjectUI
+
+@{
+    ViewData["Title"] = "Proje Oluştur";
+    Layout = "_Layout1";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Yeni Proje Oluştur</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="CreateProject" asp-controller="Project" method="post">
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <label for="projectName" class="form-label">Proje İsmi</label>
+                    <input type="text" class="form-control" id="projectName" name="ProjectName"
+                           placeholder="Projenin adını girin" required>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <label for="description" class="form-label">Proje Açıklaması</label>
+                    <textarea class="form-control" id="description" name="ProjectDescription"
+                              rows="4" placeholder="Proje hakkında detaylı açıklama yazın" required></textarea>
+                </div>
+            </div>
+
+            <div class="card mb-4 border">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">Proje Ekibi</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="nicknameInput"
+                                       placeholder="Kullanıcı adı girin">
+                                <select class="form-select" id="roleInput" style="max-width: 180px;">
+                                    <option value="Developer">Developer</option>
+                                    <option value="Tester">Tester</option>
+                                    <option value="Project Manager">Project Manager</option>
+                                </select>
+                                <button type="button" class="btn btn-success" id="addMember">
+                                    <i class="fas fa-plus me-1"></i> Ekle
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-body p-0">
+                                    <ul class="list-group list-group-flush" id="memberList">
+                                        <!-- Üyeler burada listelenecek -->
+                                    </ul>
+                                </div>
+                            </div>
+                            <!-- JSON yerine gerçek model binding -->
+                            <div id="membersContainer"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <button type="button" class="btn btn-outline-secondary me-md-2">İptal</button>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-1"></i> Projeyi Oluştur
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let members = [];
+        const nicknameInput = document.getElementById("nicknameInput");
+        const roleInput = document.getElementById("roleInput");
+        const addMemberBtn = document.getElementById("addMember");
+        const memberList = document.getElementById("memberList");
+        const membersContainer = document.getElementById("membersContainer");
+
+        addMemberBtn.addEventListener("click", function () {
+            const nickname = nicknameInput.value.trim();
+            const role = roleInput.value;
+
+            if (nickname !== "" && !members.some(m => m.MemberName === nickname)) {
+                const member = { MemberName: nickname, Role: role };
+                members.push(member);
+
+                const listItem = document.createElement("li");
+                listItem.classList.add("list-group-item", "d-flex", "justify-content-between", "align-items-center");
+
+                // Role badge renkleri
+                let badgeClass = "bg-primary";
+                if (role === "Tester") badgeClass = "bg-info";
+                if (role === "Project Manager") badgeClass = "bg-warning text-dark";
+
+                listItem.innerHTML = `
+                    <div>
+                        <strong>${nickname}</strong>
+                        <span class="badge ${badgeClass} ms-2">${role}</span>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger remove-member">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+
+                listItem.querySelector(".remove-member").addEventListener("click", function () {
+                    const index = members.findIndex(m => m.MemberName === nickname);
+                    if (index > -1) {
+                        members.splice(index, 1);
+                        memberList.removeChild(listItem);
+                        renderHiddenInputs();
+                    }
+                });
+
+                memberList.appendChild(listItem);
+                renderHiddenInputs();
+                nicknameInput.value = "";
+            }
+        });
+
+        function renderHiddenInputs() {
+            membersContainer.innerHTML = "";
+            members.forEach((member, index) => {
+                membersContainer.innerHTML += `
+                    <input type="hidden" name="Members[${index}].MemberName" value="${member.MemberName}">
+                    <input type="hidden" name="Members[${index}].Role" value="${member.Role}">
+                `;
+            });
+        }
+    });
+</script>

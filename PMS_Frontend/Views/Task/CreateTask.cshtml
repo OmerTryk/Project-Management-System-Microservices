@@ -1,0 +1,170 @@
+﻿@using PMS_Frontend.Models.ViewModels.TaskVM
+@using PMS_Frontend.Models.Enums
+@model DtoTaskUI
+
+@{
+	ViewData["Title"] = "Yeni Task Oluştur";
+	Layout = "_Layout1";
+}
+
+<div class="card">
+	<div class="card-header d-flex justify-content-between align-items-center">
+		<h5 class="mb-0">Yeni Task Oluştur</h5>
+	</div>
+	<div class="card-body">
+		<form asp-action="CreateTask" asp-controller="Task" method="post">
+			<div class="row mb-4">
+				<div class="col-md-6">
+					<label for="taskName" class="form-label">Task İsmi</label>
+					<input type="text" class="form-control" id="taskName" asp-for="TaskName"
+						   placeholder="Task adını girin" required>
+					<span asp-validation-for="TaskName" class="text-danger"></span>
+				</div>
+				<div class="col-md-6">
+					<label for="projectId" class="form-label">Proje</label>
+					<select class="form-select" id="projectId" asp-for="ProjectId" required>
+						<option value="">Proje seçin...</option>
+						@if (ViewBag.UserProjects != null)
+						{
+							foreach (var project in ViewBag.UserProjects as List<ProjectSelectItem>)
+							{
+								<option value="@project.Id">@project.Name</option>
+							}
+						}
+					</select>
+					<span asp-validation-for="ProjectId" class="text-danger"></span>
+				</div>
+			</div>
+
+			<div class="row mb-4">
+				<div class="col-md-12">
+					<label for="description" class="form-label">Task Açıklaması</label>
+					<textarea class="form-control" id="description" asp-for="Description"
+							  rows="3" placeholder="Task hakkında detaylı açıklama yazın"></textarea>
+				</div>
+			</div>
+
+			<div class="row mb-4">
+				<div class="col-md-4">
+					<label for="assignedUser" class="form-label">Atanacak Kişi</label>
+					<input type="text" class="form-control" id="assignedUser" asp-for="AssignedUser"
+						   placeholder="Kullanıcı adı girin" required>
+					<span asp-validation-for="AssignedUser" class="text-danger"></span>
+				</div>
+				<div class="col-md-4">
+					<label for="priority" class="form-label">Öncelik</label>
+					<select class="form-select" id="priority" asp-for="Priority">
+						@foreach (TaskPriorityEnum priority in Enum.GetValues<TaskPriorityEnum>())
+						{
+							<option value="@priority">@priority</option>
+						}
+					</select>
+				</div>
+				<div class="col-md-4">
+					<label for="dueDate" class="form-label">Bitiş Tarihi</label>
+					<input type="datetime-local" class="form-control" id="dueDate" asp-for="DueDate">
+				</div>
+			</div>
+
+			<div class="row mb-4">
+				<div class="col-md-6">
+					<label for="estimatedMinutes" class="form-label">Tahmini Süre (Dakika)</label>
+					<input type="number" class="form-control" id="estimatedMinutes" asp-for="EstimatedMinutes"
+						   placeholder="Tahmini süreyi dakika olarak girin" min="0">
+				</div>
+			</div>
+
+			<div class="card mb-4 border">
+				<div class="card-header bg-light">
+					<h6 class="mb-0">Anahtar Kelimeler</h6>
+				</div>
+				<div class="card-body">
+					<div class="row">
+						<div class="col-md-12">
+							<div class="input-group">
+								<input type="text" class="form-control" id="keywordInput"
+									   placeholder="Anahtar kelime girin">
+								<button type="button" class="btn btn-success" id="addKeyword">
+									<i class="fas fa-plus me-1"></i> Ekle
+								</button>
+							</div>
+						</div>
+					</div>
+
+					<div class="row mt-3">
+						<div class="col-md-12">
+							<div class="d-flex flex-wrap gap-2" id="keywordList">
+								<!-- Anahtar kelimeler burada listelenecek -->
+							</div>
+							<div id="keywordsContainer"></div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="d-grid gap-2 d-md-flex justify-content-md-end">
+				<a href="javascript:history.back()" class="btn btn-outline-secondary me-md-2">İptal</a>
+				<button type="submit" class="btn btn-primary">
+					<i class="fas fa-save me-1"></i> Task Oluştur
+				</button>
+			</div>
+		</form>
+	</div>
+</div>
+
+<script>
+	document.addEventListener("DOMContentLoaded", function () {
+		let keywords = [];
+		const keywordInput = document.getElementById("keywordInput");
+		const addKeywordBtn = document.getElementById("addKeyword");
+		const keywordList = document.getElementById("keywordList");
+		const keywordsContainer = document.getElementById("keywordsContainer");
+
+		// Enter key ile de ekleyebilsin
+		keywordInput.addEventListener("keypress", function(e) {
+			if (e.key === 'Enter') {
+				e.preventDefault();
+				addKeyword();
+			}
+		});
+
+		addKeywordBtn.addEventListener("click", addKeyword);
+
+		function addKeyword() {
+			const keyword = keywordInput.value.trim().toLowerCase();
+
+			if (keyword !== "" && !keywords.includes(keyword)) {
+				keywords.push(keyword);
+
+				const badge = document.createElement("span");
+				badge.classList.add("badge", "bg-secondary", "p-2");
+				badge.innerHTML = `
+					${keyword}
+					<button type="button" class="btn-close btn-close-white ms-2" aria-label="Close"></button>
+				`;
+
+				badge.querySelector(".btn-close").addEventListener("click", function () {
+					const index = keywords.indexOf(keyword);
+					if (index > -1) {
+						keywords.splice(index, 1);
+						keywordList.removeChild(badge);
+						renderHiddenInputs();
+					}
+				});
+
+				keywordList.appendChild(badge);
+				renderHiddenInputs();
+				keywordInput.value = "";
+			}
+		}
+
+		function renderHiddenInputs() {
+			keywordsContainer.innerHTML = "";
+			keywords.forEach((keyword, index) => {
+				keywordsContainer.innerHTML += `
+					<input type="hidden" name="Keywords[${index}]" value="${keyword}">
+				`;
+			});
+		}
+	});
+</script>

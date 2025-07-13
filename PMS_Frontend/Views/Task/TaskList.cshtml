@@ -1,0 +1,295 @@
+﻿@using PMS_Frontend.Models.ViewModels.TaskVM
+@model List<DtoTaskItem>
+
+@{
+    ViewData["Title"] = ViewBag.PageTitle ?? "Task Listesi";
+    Layout = "_Layout1";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">@(ViewBag.PageTitle ?? "Task Listesi")</h5>
+        <div>
+            <button id="printTaskList" class="btn btn-info me-2">
+                <i class="fas fa-print me-1"></i> Yazdır
+            </button>
+            <a href="@Url.Action("CreateTask", "Task")" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Yeni Task
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model != null && Model.Count > 0)
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Task İsmi</th>
+                            <th>Durum</th>
+                            <th>Öncelik</th>
+                            <th>Atanan</th>
+                            <th>Tahmini</th>
+                            <th>Bitiş Tarihi</th>
+                            <th>Anahtar Kelimeler</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var task in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@task.TaskName</strong>
+                                </td>
+                                <td>
+                                    @{
+                                        string statusClass = task.Status switch
+                                        {
+                                            "Completed" => "success",
+                                            "InProgress" => "warning",
+                                            "NotStarted" => "secondary",
+                                            "Cancelled" => "danger",
+                                            _ => "secondary"
+                                        };
+                                        string statusText = task.Status switch
+                                        {
+                                            "Completed" => "Tamamlandı",
+                                            "InProgress" => "Devam Ediyor",
+                                            "NotStarted" => "Başlanmadı",
+                                            "Cancelled" => "İptal Edildi",
+                                            _ => task.Status
+                                        };
+                                    }
+                                    <span class="badge bg-@statusClass">@statusText</span>
+                                </td>
+                                <td>
+                                    @{
+                                        string priorityClass = task.Priority switch
+                                        {
+                                            "Critical" => "danger",
+                                            "High" => "warning",
+                                            "Medium" => "info",
+                                            "Low" => "secondary",
+                                            _ => "secondary"
+                                        };
+                                        string priorityText = task.Priority switch
+                                        {
+                                            "Critical" => "Kritik",
+                                            "High" => "Yüksek",
+                                            "Medium" => "Orta",
+                                            "Low" => "Düşük",
+                                            _ => task.Priority
+                                        };
+                                    }
+                                    <span class="badge bg-@priorityClass">@priorityText</span>
+                                </td>
+                                <td>@task.AssignedUserName</td>
+                                <td>
+                                    @if (task.EstimatedMinutes.HasValue)
+                                    {
+                                        <span>@task.EstimatedMinutes dk</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (task.DueDate.HasValue)
+                                    {
+                                        <span>@task.DueDate.Value.ToString("dd.MM.yyyy HH:mm")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (task.Keywords != null && task.Keywords.Count > 0)
+                                    {
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var keyword in task.Keywords)
+                                            {
+                                                <span class="badge bg-secondary text-lowercase">@keyword</span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            @if (task.Status == "NotStarted")
+                                            {
+                                                <li>
+                                                    <form method="post" asp-action="StartTask" asp-controller="Task" class="d-inline">
+                                                        <input type="hidden" name="taskId" value="@task.TaskId" />
+                                                        <input type="hidden" name="projectId" value="@(ViewBag.ShowAllTasks ? string.Empty : ViewBag.ProjectId)" />
+                                                        <button type="submit" class="dropdown-item">
+                                                            <i class="fas fa-play text-success me-2"></i>Başlat
+                                                        </button>
+                                                    </form>
+                                                </li>
+                                            }
+                                            @if (task.Status == "InProgress")
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" href="#" onclick="openCompleteModal('@task.TaskId', '@task.TaskName')">
+                                                        <i class="fas fa-check text-success me-2"></i>Tamamla
+                                                    </a>
+                                                </li>
+                                            }
+                                            @if (task.Status == "Completed")
+                                            {
+                                                <li>
+                                                    <a class="dropdown-item" href="@Url.Action("TaskPerformance", "Task", new { taskId = task.TaskId })">
+                                                        <i class="fas fa-chart-line text-info me-2"></i>Performans
+                                                    </a>
+                                                </li>
+                                            }
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="fas fa-tasks fa-3x text-muted"></i>
+                </div>
+                <h6 class="text-muted">Henüz task bulunmuyor</h6>
+                <p class="text-muted small">Yeni bir task oluşturmak için yukarıdaki "Yeni Task" butonunu kullanın.</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Task Tamamlama Modal -->
+<div class="modal fade" id="completeTaskModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-action="CompleteTask" asp-controller="Task">
+                <div class="modal-header">
+                    <h5 class="modal-title">Task Tamamlama</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="taskId" id="modalTaskId" />
+                    <input type="hidden" name="projectId" value="@(ViewBag.ShowAllTasks ? string.Empty : ViewBag.ProjectId)" />
+
+                    <div class="mb-3">
+                        <label class="form-label">Task İsmi</label>
+                        <input type="text" class="form-control" id="modalTaskName" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="actualMinutes" class="form-label">Harcanan Süre (Dakika)</label>
+                        <input type="number" class="form-control" id="actualMinutes" name="actualMinutes" min="0" required>
+                        <small class="form-text text-muted">Task için harcadığınız toplam süreyi dakika olarak girin.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i> Tamamla
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Görev tamamlama modal script -->
+<script>
+    function openCompleteModal(taskId, taskName) {
+        document.getElementById('modalTaskId').value = taskId;
+        document.getElementById('modalTaskName').value = taskName;
+        new bootstrap.Modal(document.getElementById('completeTaskModal')).show();
+    }
+
+    // Yazdırma işlemi için basit fonksiyon
+    document.addEventListener('DOMContentLoaded', function() {
+        var printButton = document.getElementById('printTaskList');
+        if (printButton) {
+            printButton.onclick = function() {
+                window.print();
+                return false;
+            };
+        }
+    });
+</script>
+
+<!-- Yazdırma için CSS -->
+<style type="text/css">
+    @@media print {
+        /* Yazdırmada gizlenecek elementler */
+        .sidebar, .btn, .dropdown, form button, .modal, .page-heading {
+            display: none !important;
+        }
+        
+        /* Yazdırmada gösterilecek elementler */
+        .card, .table-responsive {
+            display: block !important;
+            width: 100% !important;
+        }
+        
+        /* Tablo stilleri */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th, .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        
+        .table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        /* Badge stilleri koru */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* Yazdırma başlığı ekle */
+        .card-header h5:after {
+            content: " - Yazdırma Tarihi: " attr(data-print-date);
+            font-size: 14px;
+            font-weight: normal;
+        }
+        
+        /* Sayfa ayarları */
+        body {
+            margin: 1cm;
+        }
+    }
+</style>
+
+<script>
+    // Yazdırma öncesinde tarih ekle
+    document.addEventListener('DOMContentLoaded', function() {
+        var today = new Date().toLocaleDateString('tr-TR');
+        var pageTitle = document.querySelector('.card-header h5');
+        if (pageTitle) {
+            pageTitle.setAttribute('data-print-date', today);
+        }
+    });
+</script>

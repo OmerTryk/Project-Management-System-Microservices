@@ -1,0 +1,259 @@
+﻿@using PMS_Frontend.Models.ViewModels.TaskVM
+@model DtoTaskPerformance
+
+@{
+    ViewData["Title"] = "Task Performansı";
+    Layout = "_Layout1";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Task Performansı: @Model.TaskName</h5>
+        <div>
+            <button id="printTaskPerformance" class="btn btn-info me-2">
+                <i class="fas fa-print me-1"></i> Yazdır
+            </button>
+            <a href="javascript:history.back()" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Geri Dön
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Performans Özeti -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">Genel Performans</h6>
+                        <h2 class="mb-0">
+                            @Model.PerformanceScore.ToString("F1")<span class="fs-6">/100</span>
+                        </h2>
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar bg-white" role="progressbar"
+                                 style="width: @Model.PerformanceScore%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">Süre Verimliliği</h6>
+                        <h2 class="mb-0">
+                            @Model.TimeEfficiencyScore.ToString("F1")<span class="fs-6">/100</span>
+                        </h2>
+                        <div class="progress mt-2" style="height: 8px;">
+                            <div class="progress-bar bg-white" role="progressbar"
+                                 style="width: @Model.TimeEfficiencyScore%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body">
+                        <h6 class="card-title">Süre Karşılaştırması</h6>
+                        <p class="card-text">
+                            Harcanan: <strong>@Model.ActualMinutes dk</strong><br>
+                            Ortalama: <strong>@Model.AverageMinutesForSimilarTasks dk</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Benzer Tasklar -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">Benzer Tasklar (@Model.SimilarTasks.Count adet)</h6>
+            </div>
+            <div class="card-body">
+                @if (Model.SimilarTasks != null && Model.SimilarTasks.Count > 0)
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Task İsmi</th>
+                                    <th>Benzerlik</th>
+                                    <th>Süre</th>
+                                    <th>Tamamlanma Tarihi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var similar in Model.SimilarTasks)
+                                {
+                                    <tr>
+                                        <td>@similar.TaskName</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress me-2" style="width: 100px; height: 20px;">
+                                                    <div class="progress-bar" role="progressbar"
+                                                         style="width: @similar.SimilarityPercentage%"
+                                                         aria-valuenow="@similar.SimilarityPercentage"
+                                                         aria-valuemin="0" aria-valuemax="100">
+                                                        @similar.SimilarityPercentage.ToString("F0")%
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>@similar.DurationMinutes dk</td>
+                                        <td>@similar.CompletedAt.ToString("dd.MM.yyyy HH:mm")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-info-circle fa-2x text-muted mb-2"></i>
+                        <p class="text-muted">Henüz benzer task bulunamadı.</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Detaylı Açıklama -->
+        <div class="mt-4">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-1"></i> Performans Hesaplaması</h6>
+                <p class="mb-0">
+                    <strong>Genel Performans Skoru:</strong> %60 Süre Verimliliği + %40 Benzerlik Skoru<br>
+                    <strong>Süre Verimliliği:</strong> Beklenen süre ile gerçek süre arasındaki oransal performans<br>
+                    <strong>Benzerlik Skoru:</strong> Anahtar kelime benzerliği ile geçmiş tasklarla karşılaştırma
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .progress-bar {
+        transition: width 0.6s ease;
+    }
+
+    .card.bg-primary, .card.bg-success, .card.bg-info {
+        border: none;
+    }
+</style>
+
+<!-- Yazdırma için CSS -->
+<style type="text/css">
+    @@media print {
+        /* Yazdırmada gizlenecek elementler */
+        .sidebar, .btn, .page-heading, footer, .dropdown, .dropdown-toggle {
+            display: none !important;
+        }
+        
+        /* Yazdırmada gösterilecek elementler */
+        .card, .table-responsive, .row, .col-md-4, .alert {
+            display: block !important;
+            width: 100% !important;
+        }
+        
+        /* Tablo stilleri */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .table th, .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        
+        .table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        
+        /* Progress barı %100 göster */
+        .progress {
+            border: 1px solid #ddd;
+            background-color: #f5f5f5;
+            height: 20px !important;
+            display: block;
+            overflow: visible;
+        }
+        
+        .progress-bar {
+            background-color: #333 !important;
+            color: white !important;
+            text-align: center;
+            height: 20px !important;
+        }
+        
+        /* Yazdırma başlığı ekle */
+        .card-header h5:after {
+            content: " - Yazdırma Tarihi: " attr(data-print-date);
+            font-size: 14px;
+            font-weight: normal;
+        }
+        
+        /* Kart stilleri */
+        .card {
+            border: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background-color: #f5f5f5;
+            padding: 10px;
+            font-weight: bold;
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+        
+        /* Renklendirme */
+        .bg-primary {
+            background-color: #f0f9ff !important;
+            color: #0d6efd !important;
+            border: 1px solid #0d6efd;
+        }
+        
+        .bg-success {
+            background-color: #f0fff0 !important;
+            color: #198754 !important;
+            border: 1px solid #198754;
+        }
+        
+        .bg-info {
+            background-color: #f0f9ff !important;
+            color: #0dcaf0 !important;
+            border: 1px solid #0dcaf0;
+        }
+        
+        /* Sayfa ayarları */
+        body {
+            margin: 1cm;
+        }
+    }
+</style>
+
+<!-- Yazdırma js -->
+<script>
+    // Sayfa yüklendiğinde çalışacak
+    document.addEventListener('DOMContentLoaded', function() {
+        // Yazdır butonuna click event listener ekle
+        var printButton = document.getElementById('printTaskPerformance');
+        if (printButton) {
+            printButton.onclick = function() {
+                // Başlık için tarih ekle
+                var today = new Date().toLocaleDateString('tr-TR');
+                var pageTitle = document.querySelector('.card-header h5');
+                if (pageTitle) {
+                    pageTitle.setAttribute('data-print-date', today);
+                }
+                
+                // Yazdırma işlemi
+                window.print();
+                return false;
+            };
+        }
+    });
+</script>
